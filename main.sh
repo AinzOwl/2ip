@@ -32,9 +32,25 @@ start_project() {
 }
 
 # Function to check status
-check_status() {
+restore_server() {
     echo "Checking status..."
-    # Add commands to check the status here
+
+    restore_scripts=(
+        "restore/mysterium.sh"
+        # "install/nodejs.sh"
+        # Add more dependency scripts here
+    )
+    
+    for script in "${restore_scripts[@]}"; do
+        echo "Running $script..."
+        bash "$script"
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to install dependencies."
+            exit 1
+        fi
+        echo "Completed $script."
+    done
+
     echo "Status checked."
 }
 
@@ -42,7 +58,7 @@ check_status() {
 echo "What do you want to do?"
 echo "[1] Install dependencies"
 echo "[2] Start project"
-echo "[3] Check status"
+echo "[3] Restore server"
 
 read -p "Enter your choice: " choice
 
@@ -54,7 +70,7 @@ case $choice in
         start_project
         ;;
     3)
-        check_status
+        restore_server
         ;;
     *)
         echo "Invalid choice. Exiting."
