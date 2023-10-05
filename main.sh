@@ -1,78 +1,67 @@
 #!/bin/bash
 
-# Function to install dependencies
-install_dependencies() {
-    echo "Installing dependencies..."
+# check os if its not ubuntu 20.04 > exit
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+elif [ -f /etc/debian_version ]; then
+    OS=debian
+else
+    echo "Unsupported operating system."
+    exit 1
+fi
+# check if nodejs is not installed
+if dpkg -s nodejs | grep -q "Version: 20"; then
+    echo "Node.js version 20 is already installed."
+else
+    echo "Downloading Node.js setup script..."
     
-    # Array of dependency scripts to execute
-    dependency_scripts=(
-        "install/docker.sh"
-        # "install/nodejs.sh"
-        # Add more dependency scripts here
-    )
-    
-    for script in "${dependency_scripts[@]}"; do
-        echo "Running $script..."
-        bash "$script"
-        if [ $? -ne 0 ]; then
-            echo "Error: Failed to install dependencies."
-            exit 1
-        fi
-        echo "Completed $script."
-    done
-    
-    echo "Dependencies installed successfully."
-}
+    sudo apt-get update
+    sudo apt-get install -y ca-certificates curl gnupg
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 
-# Function to start the project
-start_project() {
-    echo "Starting the project..."
-    # Add commands to start the project here
-    echo "Project started."
-}
+    NODE_MAJOR=20
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
 
-# Function to check status
-restore_server() {
-    echo "Checking status..."
+    sudo apt-get update
+    sudo apt-get install nodejs -y
 
-    restore_scripts=(
-        "restore/mysterium.sh"
-        # "install/nodejs.sh"
-        # Add more dependency scripts here
-    )
-    
-    for script in "${restore_scripts[@]}"; do
-        echo "Running $script..."
-        bash "$script"
-        if [ $? -ne 0 ]; then
-            echo "Error: Failed to install dependencies."
-            exit 1
-        fi
-        echo "Completed $script."
-    done
+    echo "Node.js installed successfully."
+fi
 
-    echo "Status checked."
-}
+# check if docker is not installed
+if dpkg -s docker-ce >/dev/null 2>&1; then
+    echo "Docker is already installed."
+else
+    echo "Docker is not installed, installing it"
 
-# Main script
-echo "What do you want to do?"
-echo "[1] Install dependencies"
-echo "[2] Start project"
-echo "[3] Restore server"
+    # Update apt-get
+    echo "Updating apt-get..."
+    sudo apt-get update
 
-read -p "Enter your choice: " choice
+    # Install prerequisites
+    echo "Installing prerequisites..."
+    sudo apt-get install apt-transport-https ca-certificates curl software-properties-common -y
 
-case $choice in
-    1)
-        install_dependencies
-        ;;
-    2)
-        start_project
-        ;;
-    3)
-        restore_server
-        ;;
-    *)
-        echo "Invalid choice. Exiting."
-        ;;
-esac
+    # Add Docker GPG key and repository
+    echo "Adding Docker GPG key..."
+    curl -fsSL https://download.docker.com/linux/$OS/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "Adding Docker repository to apt sources..."
+    echo "deb [signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/$OS $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Update apt-get again
+    echo "Updating apt-get..."
+    sudo apt-get update
+
+    # Install Docker
+    echo "Installing Docker..."
+    sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+
+    echo "Done!"
+fi
+
+# cd to app and run npm install
+# cd app
+# npm install
+# node index.js $1 $2
